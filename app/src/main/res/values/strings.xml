@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">PhotoGallery</string>
+    <string name="error_api_services">ERROR API SERVICES</string>
+    <string name="title_bar">Photos</string>
+    <string name="author">Created by Antonio J Morales</string>
+    <string name="photo_number">Photo</string>
+
+</resources>
