@@ -7,8 +7,8 @@ import android.graphics.Bitmap
 import android.os.Bundle
 import android.provider.MediaStore
 import android.view.View
-import android.widget.ImageView
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.ActivityResultLauncher
+import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -19,8 +19,11 @@ import com.antoniomy82.photogallery.databinding.FragmentAddPhotoBinding
 import com.antoniomy82.photogallery.databinding.FragmentBaseBinding
 import com.antoniomy82.photogallery.model.Photo
 import com.antoniomy82.photogallery.model.network.NetworkRepository
+import com.antoniomy82.photogallery.ui.AddPhotoFragment
+import com.antoniomy82.photogallery.ui.BaseFragment
 import com.antoniomy82.photogallery.ui.PhotosListAdapter
 import com.antoniomy82.photogallery.utils.CommonUtil
+import com.antoniomy82.photogallery.utils.ResizePicture
 import java.lang.ref.WeakReference
 import kotlin.system.exitProcess
 
@@ -32,12 +35,13 @@ class GalleryViewModel : ViewModel() {
     private var mainBundle: Bundle? = null
     private var fragmentBaseBinding: FragmentBaseBinding? = null
     private var frgBaseContext: WeakReference<Context>? = null
+    private var startForResult: ActivityResultLauncher<Intent>? = null
 
 
-    //Base Fragment parameters
+    //Add Photo Fragment parameters
     private var frgAddPhotoActivity: WeakReference<Activity>? = null
     private var frgAddPhotoView: WeakReference<View>? = null
-    var fragmentAddPhotoBinding:FragmentAddPhotoBinding ?= null
+    var fragmentAddPhotoBinding: FragmentAddPhotoBinding? = null
     private var frgAddPhotoContext: WeakReference<Context>? = null
 
     //Live data parameters
@@ -51,7 +55,7 @@ class GalleryViewModel : ViewModel() {
 
     //Local variables
     private var mMenu: PopupMenu? = null
-    var selectedImagePreview : WeakReference<Bitmap> ?=null
+    var selectedImagePreview: WeakReference<Bitmap>? = null
 
     //Set Base fragment parameters in this VM
     fun setBaseFragmentBinding(
@@ -59,21 +63,23 @@ class GalleryViewModel : ViewModel() {
         frgContext: Context,
         frgView: View,
         mainBundle: Bundle?,
-        fragmentBaseBinding: FragmentBaseBinding
+        fragmentBaseBinding: FragmentBaseBinding,
+        startForResult: ActivityResultLauncher<Intent>
     ) {
         this.frgBaseActivity = WeakReference(frgActivity)
         this.frgBaseContext = WeakReference(frgContext)
         this.frgBaseView = WeakReference(frgView)
         this.mainBundle = mainBundle
         this.fragmentBaseBinding = fragmentBaseBinding
+        this.startForResult = startForResult
     }
 
-    //Set Base fragment parameters in this VM
+    //Set AddPhoto fragment parameters in this VM
     fun setAddPhotoFragmentBinding(
         frgActivity: Activity,
         frgContext: Context,
         frgView: View,
-        fragmentAddPhotoBinding:FragmentAddPhotoBinding
+        fragmentAddPhotoBinding: FragmentAddPhotoBinding
     ) {
         this.frgAddPhotoActivity = WeakReference(frgActivity)
         this.frgAddPhotoContext = WeakReference(frgContext)
@@ -98,7 +104,7 @@ class GalleryViewModel : ViewModel() {
         }
 
         setPhotoMenu()
-        CommonUtil.galleryViewModel=this
+        CommonUtil.galleryViewModel = this
 
     }
 
@@ -134,6 +140,15 @@ class GalleryViewModel : ViewModel() {
         exitProcess(0)
     }
 
+    fun addPhotoBackArrow(){
+        (frgAddPhotoContext?.get() as AppCompatActivity).supportFragmentManager.let {
+            CommonUtil.replaceFragment(
+                BaseFragment(),
+                it
+            )
+        }
+    }
+
     private fun setPhotoMenu() {
         mMenu = fragmentBaseBinding?.headerAdd?.let {
             frgBaseContext?.get()?.let { it1 ->
@@ -150,22 +165,24 @@ class GalleryViewModel : ViewModel() {
             when (menuItem.itemId) {
                 R.id.photo_gallery -> {
 
-                    val selectPic = Intent()
-                    selectPic.type = "image/*"
-                    selectPic.action = Intent.ACTION_GET_CONTENT
-                    frgBaseActivity?.get()?.startActivityForResult(Intent.createChooser(selectPic, "Select Picture"), 200)
+                    val selectedPhoto = Intent()
+                    selectedPhoto.type = "image/*"
+                    selectedPhoto.action = Intent.ACTION_GET_CONTENT
 
+                    CommonUtil.requestCode = 200
+
+                    startForResult?.launch(selectedPhoto)
                 }
+
                 R.id.photo_camera -> {
 
                     val takePictureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
 
                     if (frgBaseActivity?.get()?.packageManager?.let(takePictureIntent::resolveActivity) != null) {
-                        frgBaseActivity?.get()?.startActivityForResult(
-                            takePictureIntent, 100)
+                        CommonUtil.requestCode = 100
+
+                        startForResult?.launch(takePictureIntent)
                     }
-
-
                 }
             }
 
@@ -177,5 +194,54 @@ class GalleryViewModel : ViewModel() {
         mMenu?.show()
     }
 
+    fun takePhotoForResult(requestCode: Int, data: Intent?) {
+        when (requestCode) {
+            100 -> {
+                val extras = data?.extras
+                val imageBitmap = extras?.get("data") as Bitmap?
 
+                CommonUtil.galleryViewModel?.selectedImagePreview = WeakReference(imageBitmap)
+
+                (frgBaseContext?.get() as AppCompatActivity).supportFragmentManager.let {
+                    CommonUtil.replaceFragment(
+                        AddPhotoFragment(),
+                        it
+                    )
+                }
+
+            }
+
+            200 -> {
+                val selectedImageUri = data?.data
+
+                val mBitmap = selectedImageUri?.let {
+                    frgBaseActivity?.get()?.contentResolver?.let { it1 ->
+                        ResizePicture(
+                            it,
+                            it1
+                        ).bitmap
+                    }
+                }
+                CommonUtil.galleryViewModel?.selectedImagePreview = WeakReference(mBitmap)
+
+                CommonUtil.replaceFragment(
+                    AddPhotoFragment(),
+                    (frgBaseContext?.get() as AppCompatActivity).supportFragmentManager
+                )
+            }
+        }
+    }
+
+    fun savePhotoButton(){
+        frgAddPhotoContext?.get()?.let { frgAddPhotoView?.get()?.let { it1 ->
+            CommonUtil.hideKeyboard(it,
+                it1
+            )
+        } }
+
+        //Todo insert into local bd
+        addPhotoBackArrow()
+
+
+    }
 }

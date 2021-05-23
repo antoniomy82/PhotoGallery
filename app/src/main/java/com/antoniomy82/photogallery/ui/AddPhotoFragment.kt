@@ -21,6 +21,7 @@ class AddPhotoFragment : Fragment() {
         fragmentAddPhotoBinding =
             DataBindingUtil.inflate(inflater, R.layout.fragment_add_photo, container, false)
 
+
         return fragmentAddPhotoBinding?.root
     }
 

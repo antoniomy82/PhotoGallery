@@ -2,28 +2,18 @@ package com.antoniomy82.photogallery.ui
 
 import android.app.Activity
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import android.os.Bundle
-import android.provider.MediaStore
-import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
-import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.drawToBitmap
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.databinding.DataBindingUtil
-import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.ViewModelProvider
 import com.antoniomy82.photogallery.R
 import com.antoniomy82.photogallery.databinding.FragmentBaseBinding
 import com.antoniomy82.photogallery.utils.CommonUtil
-import com.antoniomy82.photogallery.utils.ResizePicture
 import com.antoniomy82.photogallery.viewmodel.GalleryViewModel
-import java.io.IOException
 
 
 class BaseFragment : Fragment() {
@@ -31,12 +21,21 @@ class BaseFragment : Fragment() {
     private var fragmentBaseBinding: FragmentBaseBinding? = null
     private var galleryViewModel: GalleryViewModel? = null
 
+    // ActivityForResult deprecated for library versions later than androidx.fragment:1.3.0-alpha04,use this
+    private val startForResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val data: Intent? = result.data
+            CommonUtil.requestCode?.let { galleryViewModel?.takePhotoForResult(it, data) }
+        }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         fragmentBaseBinding =
             DataBindingUtil.inflate(inflater, R.layout.fragment_base, container, false)
+
 
         return fragmentBaseBinding?.root
     }
@@ -54,7 +53,7 @@ class BaseFragment : Fragment() {
                 fragmentBaseBinding?.let { it2 ->
                     galleryViewModel?.setBaseFragmentBinding(
                         it,
-                        it1, view, savedInstanceState, it2
+                        it1, view, savedInstanceState, it2, startForResult
                     )
                 }
             }
@@ -70,5 +69,4 @@ class BaseFragment : Fragment() {
         }
 
     }
-
 }

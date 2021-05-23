@@ -19,6 +19,7 @@ class CommonUtil {
     companion object {
 
         var galleryViewModel: GalleryViewModel? = null
+        var requestCode:Int?=0
 
         fun replaceFragment(fragment: Fragment?, fragmentManager: FragmentManager) {
             try {

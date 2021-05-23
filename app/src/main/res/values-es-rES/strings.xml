@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">A.MORALES PhotoGallery</string>
+    <string name="error_api_services">ERROR API SERVICES</string>
+    <string name="title_bar">Fotos</string>
+    <string name="author">Creado por Antonio J Morales</string>
+    <string name="photo_number">Foto&#160;</string>
+    <string name="menu_photo_gallery">Agregar desde Galería</string>
+    <string name="menu_photo_camera">Agregar desde Cámara</string>
+    <string name="title_add_photo">Agregar Foto</string>
+    <string name="edit_title">Agrege título</string>
+    <string name="save_btn">Guardar</string>
+</resources>

@@ -57,20 +57,6 @@ class PhotosListAdapter(
         )
         else holder.adapterPhotosListBinding.root.setBackgroundColor(Color.parseColor("#dce6ee"))
 
-
-        //on Click item - open URL
-        holder.adapterPhotosListBinding.root.setOnClickListener {
-
-            /*
-            RecipesUtils.replaceFragment(moviesList[position].href?.let { it1 ->
-                ShowHrefFragment(
-                    it1,
-                    moviesVM
-                )
-            }, (context as AppCompatActivity).supportFragmentManager) */
-        }
-
-
     }
 
 
