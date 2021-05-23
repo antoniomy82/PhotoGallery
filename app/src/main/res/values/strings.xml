@@ -3,6 +3,11 @@
     <string name="error_api_services">ERROR API SERVICES</string>
     <string name="title_bar">Photos</string>
     <string name="author">Created by Antonio J Morales</string>
-    <string name="photo_number">Photo</string>
+    <string name="photo_number">Photo&#160;</string>
+    <string name="menu_photo_gallery">Add from gallery</string>
+    <string name="menu_photo_camera">Add from camera</string>
+    <string name="title_add_photo">Add Photo</string>
+    <string name="edit_title">Add title</string>
+    <string name="save_btn">Save</string>
 
 </resources>

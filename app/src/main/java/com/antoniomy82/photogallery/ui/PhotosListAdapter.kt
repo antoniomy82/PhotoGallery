@@ -3,7 +3,6 @@ package com.antoniomy82.photogallery.ui
 import android.content.Context
 import android.graphics.Color
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
 import androidx.databinding.DataBindingUtil
 import androidx.recyclerview.widget.RecyclerView
@@ -47,8 +46,8 @@ class PhotosListAdapter(
                 .into(holder.adapterPhotosListBinding.imagePhoto)
         }
 
-
-        holder.adapterPhotosListBinding.photoNumber.text=context.getString(R.string.photo_number)+position
+        val setPosition=context.getString(R.string.photo_number)+position
+        holder.adapterPhotosListBinding.photoNumber.text = setPosition
 
         //Set background color so that different cells are noticeable
         if (position % 2 == 0) holder.adapterPhotosListBinding.root.setBackgroundColor(

@@ -23,6 +23,7 @@
                 android:layout_height="match_parent"
                 android:src="@drawable/back"
                 app:tint="@color/title_text"
+                android:onClick="@{()->galleryVM.homeGalleryBackArrow()}"
                 tools:ignore="ContentDescription"/>
 
             <TextView
@@ -45,6 +46,7 @@
                 android:layout_height="match_parent"
                 android:src="@drawable/ic_add"
                 app:tint="@color/title_text"
+                android:onClick="@{()->galleryVM.showPhotoMenuButton()}"
                 tools:ignore="ContentDescription"/>
 
         </LinearLayout>
@@ -71,7 +73,10 @@
             android:layout_weight="0.9"
             android:animateLayoutChanges="false"
             android:animationCache="false"
-            android:background="@drawable/bg_rounded_black" />
+            android:scrollbars="vertical"
+            android:scrollbarThumbVertical="@android:color/holo_orange_dark"
+            android:scrollbarSize="6dp"
+            android:fadeScrollbars="false"/>
 
     </LinearLayout>
 

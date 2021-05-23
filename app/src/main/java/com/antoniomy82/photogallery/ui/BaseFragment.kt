@@ -1,31 +1,40 @@
 package com.antoniomy82.photogallery.ui
 
+import android.app.Activity
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.os.Bundle
+import android.provider.MediaStore
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.drawToBitmap
 import androidx.databinding.DataBindingUtil
-import androidx.lifecycle.MutableLiveData
+import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.ViewModelProvider
 import com.antoniomy82.photogallery.R
 import com.antoniomy82.photogallery.databinding.FragmentBaseBinding
-import com.antoniomy82.photogallery.model.Photo
-import com.antoniomy82.photogallery.model.network.NetworkRepository
+import com.antoniomy82.photogallery.utils.CommonUtil
+import com.antoniomy82.photogallery.utils.ResizePicture
 import com.antoniomy82.photogallery.viewmodel.GalleryViewModel
+import java.io.IOException
 
 
 class BaseFragment : Fragment() {
 
-    var fragmentBaseBinding: FragmentBaseBinding? = null
-    var galleryViewModel: GalleryViewModel? = null
+    private var fragmentBaseBinding: FragmentBaseBinding? = null
+    private var galleryViewModel: GalleryViewModel? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        // Inflate the layout for this fragment
-
         fragmentBaseBinding =
             DataBindingUtil.inflate(inflater, R.layout.fragment_base, container, false)
 
@@ -37,6 +46,7 @@ class BaseFragment : Fragment() {
 
         galleryViewModel = ViewModelProvider(this).get(GalleryViewModel::class.java)
         fragmentBaseBinding?.galleryVM = galleryViewModel
+
 
         //Set base fragment parameters in this VM
         activity?.let {
@@ -50,16 +60,15 @@ class BaseFragment : Fragment() {
             }
         }
 
+        galleryViewModel?.setUI()
 
 
-        context?.let { galleryViewModel?.retrieveNetworkPhotos?.let { it1 ->
-            NetworkRepository().getAllPhoto(it,
-                it1
-            )
-        } }
-
-        galleryViewModel?.retrieveNetworkPhotos?.observe(viewLifecycleOwner){
-            if(it!=null) galleryViewModel?.setPhotosRecyclerViewAdapter(it)
+        //Set observer to load recyclerview
+        galleryViewModel?.retrieveNetworkPhotos?.observe(viewLifecycleOwner) {
+            if (it != null) galleryViewModel?.setPhotosRecyclerViewAdapter(it)
+            fragmentBaseBinding?.progressBar?.visibility = View.GONE
         }
+
     }
+
 }

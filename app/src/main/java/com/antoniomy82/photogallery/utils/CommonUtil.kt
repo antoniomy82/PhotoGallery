@@ -11,11 +11,14 @@ import androidx.annotation.RequiresApi
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import com.antoniomy82.photogallery.R
+import com.antoniomy82.photogallery.viewmodel.GalleryViewModel
 import java.util.*
 
 class CommonUtil {
 
     companion object {
+
+        var galleryViewModel: GalleryViewModel? = null
 
         fun replaceFragment(fragment: Fragment?, fragmentManager: FragmentManager) {
             try {
