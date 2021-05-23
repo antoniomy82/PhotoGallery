@@ -2,12 +2,14 @@ package com.antoniomy82.photogallery.ui
 
 import android.app.Activity
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.ViewModelProvider
 import com.antoniomy82.photogallery.R
@@ -40,6 +42,7 @@ class BaseFragment : Fragment() {
         return fragmentBaseBinding?.root
     }
 
+    @RequiresApi(Build.VERSION_CODES.M)
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -63,7 +66,7 @@ class BaseFragment : Fragment() {
 
 
         //Set observer to load recyclerview
-        galleryViewModel?.retrieveNetworkPhotos?.observe(viewLifecycleOwner) {
+        galleryViewModel?.retrievePhotos?.observe(viewLifecycleOwner) {
             if (it != null) galleryViewModel?.setPhotosRecyclerViewAdapter(it)
             fragmentBaseBinding?.progressBar?.visibility = View.GONE
         }

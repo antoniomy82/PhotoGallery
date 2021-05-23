@@ -44,7 +44,7 @@ class ResizePicture(private var uri: Uri, private var resolver: ContentResolver)
                     path = cursor.getString(cursor.getColumnIndex(MediaStore.Images.Media.DATA))
                     val orientation = cursor.getInt(cursor.getColumnIndex(MediaStore.Images.ImageColumns.ORIENTATION))
                     this.orientation = Matrix()
-                    this.orientation?.setRotate(orientation.toFloat())
+                    this.orientation!!.setRotate(orientation.toFloat())
                     cursor.close()
                     return true
             }
@@ -63,20 +63,20 @@ class ResizePicture(private var uri: Uri, private var resolver: ContentResolver)
 
             when (orientation) {
                     ExifInterface.ORIENTATION_NORMAL -> { }
-                    ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> this.orientation?.setScale(-1f, 1f)
-                    ExifInterface.ORIENTATION_ROTATE_180 -> this.orientation?.setRotate(180f)
-                    ExifInterface.ORIENTATION_FLIP_VERTICAL -> this.orientation?.setScale(1f, -1f)
+                    ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> this.orientation!!.setScale(-1f, 1f)
+                    ExifInterface.ORIENTATION_ROTATE_180 -> this.orientation!!.setRotate(180f)
+                    ExifInterface.ORIENTATION_FLIP_VERTICAL -> this.orientation!!.setScale(1f, -1f)
                     ExifInterface.ORIENTATION_TRANSPOSE -> {
-                        this.orientation?.setRotate(90f)
-                        this.orientation?.postScale(-1f, 1f)
+                        this.orientation!!.setRotate(90f)
+                        this.orientation!!.postScale(-1f, 1f)
                 }
 
-                ExifInterface.ORIENTATION_ROTATE_90 -> this.orientation?.setRotate(90f)
+                ExifInterface.ORIENTATION_ROTATE_90 -> this.orientation!!.setRotate(90f)
                 ExifInterface.ORIENTATION_TRANSVERSE -> {
-                    this.orientation?.setRotate(-90f)
-                    this.orientation?.postScale(-1f, 1f)
+                    this.orientation!!.setRotate(-90f)
+                    this.orientation!!.postScale(-1f, 1f)
                 }
-                ExifInterface.ORIENTATION_ROTATE_270 -> this.orientation?.setRotate(-90f)
+                ExifInterface.ORIENTATION_ROTATE_270 -> this.orientation!!.setRotate(-90f)
             }
             return true
         }

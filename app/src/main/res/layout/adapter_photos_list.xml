@@ -89,6 +89,7 @@
                 android:layout_height="32dp"
                 android:layout_marginEnd="10dp"
                 android:src="@drawable/ic_remove"
+
                 tools:ignore="ContentDescription" />
 
         </LinearLayout>

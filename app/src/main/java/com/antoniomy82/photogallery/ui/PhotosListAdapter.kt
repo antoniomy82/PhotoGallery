@@ -1,7 +1,9 @@
 package com.antoniomy82.photogallery.ui
 
 import android.content.Context
+import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.databinding.DataBindingUtil
@@ -38,7 +40,7 @@ class PhotosListAdapter(
         holder.adapterPhotosListBinding.galleryVM = galleryVM
         holder.adapterPhotosListBinding.photo = photosList[position]
 
-        //Set image
+        //Set image from url
         if (photosList[position].thumbnailUrl?.isNotEmpty() == true) {
             Picasso.get().load(photosList[position].thumbnailUrl)
                 .placeholder(R.mipmap.ic_no_image)
@@ -46,7 +48,11 @@ class PhotosListAdapter(
                 .into(holder.adapterPhotosListBinding.imagePhoto)
         }
 
-        val setPosition=context.getString(R.string.photo_number)+position
+        //Set image from take photo
+        if(photosList[position].imageBmp!=null) holder.adapterPhotosListBinding.imagePhoto.setImageBitmap(
+          BitmapFactory.decodeByteArray(photosList[position].imageBmp,0, (photosList[position].imageBmp)?.size?:0) )
+
+        val setPosition=context.getString(R.string.photo_number)+photosList[position].id.toString()
         holder.adapterPhotosListBinding.photoNumber.text = setPosition
 
         //Set background color so that different cells are noticeable
@@ -56,6 +62,11 @@ class PhotosListAdapter(
             )
         )
         else holder.adapterPhotosListBinding.root.setBackgroundColor(Color.parseColor("#dce6ee"))
+
+
+        holder.adapterPhotosListBinding.deleteIcon.setOnClickListener {
+            galleryVM.deletePhotoButton(photosList[position],position)
+        }
 
     }
 

@@ -4,10 +4,13 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
+import android.util.Log
 import android.view.View
 import androidx.activity.result.ActivityResultLauncher
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
 import androidx.lifecycle.MutableLiveData
@@ -18,12 +21,17 @@ import com.antoniomy82.photogallery.R
 import com.antoniomy82.photogallery.databinding.FragmentAddPhotoBinding
 import com.antoniomy82.photogallery.databinding.FragmentBaseBinding
 import com.antoniomy82.photogallery.model.Photo
+import com.antoniomy82.photogallery.model.database.LocalDbRepository
 import com.antoniomy82.photogallery.model.network.NetworkRepository
 import com.antoniomy82.photogallery.ui.AddPhotoFragment
 import com.antoniomy82.photogallery.ui.BaseFragment
 import com.antoniomy82.photogallery.ui.PhotosListAdapter
 import com.antoniomy82.photogallery.utils.CommonUtil
 import com.antoniomy82.photogallery.utils.ResizePicture
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.launch
+import java.io.ByteArrayOutputStream
 import java.lang.ref.WeakReference
 import kotlin.system.exitProcess
 
@@ -41,17 +49,17 @@ class GalleryViewModel : ViewModel() {
     //Add Photo Fragment parameters
     private var frgAddPhotoActivity: WeakReference<Activity>? = null
     private var frgAddPhotoView: WeakReference<View>? = null
-    var fragmentAddPhotoBinding: FragmentAddPhotoBinding? = null
+    private var fragmentAddPhotoBinding: FragmentAddPhotoBinding? = null
     private var frgAddPhotoContext: WeakReference<Context>? = null
 
-    //Live data parameters
-    val retrieveLocalDdPhotos = MutableLiveData<List<Photo>>()
-    val retrieveNetworkPhotos = MutableLiveData<List<Photo>>()
+    //Live data parameter
+    val retrievePhotos = MutableLiveData<List<Photo>>()
 
 
     //Recycler view variables
     private var recyclerView: WeakReference<RecyclerView>? = null
     private var actualPhotoList: MutableList<Photo>? = null
+    private var listSize = 0
 
     //Local variables
     private var mMenu: PopupMenu? = null
@@ -89,36 +97,50 @@ class GalleryViewModel : ViewModel() {
         fragmentAddPhotoBinding.selectedPhoto.setImageBitmap(selectedImagePreview?.get())
     }
 
+    @RequiresApi(Build.VERSION_CODES.M)
     fun setUI() {
 
         fragmentBaseBinding?.progressBar?.visibility = View.VISIBLE //Load ProgressBar
 
-        //Call network repository
-        frgBaseContext?.get()?.let {
-            retrieveNetworkPhotos.let { it1 ->
-                NetworkRepository().getAllPhoto(
-                    it,
-                    it1
-                )
+
+        if (frgBaseContext?.get()?.let { CommonUtil.isOnline(it) } == true) {
+            //Call network repository
+            frgBaseContext?.get()?.let {
+                retrievePhotos.let { it1 ->
+                    NetworkRepository().getAllPhoto(
+                        it,
+                        it1
+                    )
+                }
             }
+        } else {
+            Log.d("LocalDB", "retrieveLocal")
+            LocalDbRepository().getAllPhotos(frgBaseContext?.get(), retrievePhotos)
         }
 
         setPhotoMenu()
-        CommonUtil.galleryViewModel = this
+
 
     }
 
     //Set Photos List in RecyclerView
-    fun setPhotosRecyclerViewAdapter(movieList: List<Photo>) {
+    @RequiresApi(Build.VERSION_CODES.M)
+    fun setPhotosRecyclerViewAdapter(photosList: List<Photo>) {
 
-        actualPhotoList = movieList.toMutableList()
+
+        actualPhotoList = (photosList.reversed()).toMutableList()
+        listSize = actualPhotoList?.size ?: 0
+        Log.d("recyclerView", listSize.toString())
+
+        if (frgBaseContext?.get()?.let { CommonUtil.isOnline(it) } == true) saveInLocalDB()
+
 
         recyclerView =
             WeakReference(frgBaseView?.get()?.findViewById(R.id.rvPhotos) as RecyclerView)
         val manager: RecyclerView.LayoutManager =
             GridLayoutManager(frgBaseActivity?.get(), 2) //Orientation
         recyclerView?.get()?.layoutManager = manager
-        movieList.sortedBy { it.title }
+
 
         recyclerView?.get()?.adapter = frgBaseContext?.get()?.let {
             actualPhotoList?.let { it2 ->
@@ -127,9 +149,9 @@ class GalleryViewModel : ViewModel() {
                     it
                 )
             }
-
         }
 
+        CommonUtil.galleryViewModel = this
         fragmentBaseBinding?.galleryVM = this
         recyclerView?.get()?.adapter?.notifyDataSetChanged()
     }
@@ -140,7 +162,7 @@ class GalleryViewModel : ViewModel() {
         exitProcess(0)
     }
 
-    fun addPhotoBackArrow(){
+    fun addPhotoBackArrow() {
         (frgAddPhotoContext?.get() as AppCompatActivity).supportFragmentManager.let {
             CommonUtil.replaceFragment(
                 BaseFragment(),
@@ -170,7 +192,7 @@ class GalleryViewModel : ViewModel() {
                     selectedPhoto.action = Intent.ACTION_GET_CONTENT
 
                     CommonUtil.requestCode = 200
-
+                    CommonUtil.galleryViewModel = this
                     startForResult?.launch(selectedPhoto)
                 }
 
@@ -180,7 +202,7 @@ class GalleryViewModel : ViewModel() {
 
                     if (frgBaseActivity?.get()?.packageManager?.let(takePictureIntent::resolveActivity) != null) {
                         CommonUtil.requestCode = 100
-
+                        CommonUtil.galleryViewModel = this
                         startForResult?.launch(takePictureIntent)
                     }
                 }
@@ -214,13 +236,11 @@ class GalleryViewModel : ViewModel() {
             200 -> {
                 val selectedImageUri = data?.data
 
-                val mBitmap = selectedImageUri?.let {
-                    frgBaseActivity?.get()?.contentResolver?.let { it1 ->
-                        ResizePicture(
+                val mBitmap = selectedImageUri?.let { frgBaseActivity?.get()?.contentResolver?.let { it1 -> ResizePicture(
                             it,
                             it1
                         ).bitmap
-                    }
+                }
                 }
                 CommonUtil.galleryViewModel?.selectedImagePreview = WeakReference(mBitmap)
 
@@ -232,16 +252,59 @@ class GalleryViewModel : ViewModel() {
         }
     }
 
-    fun savePhotoButton(){
-        frgAddPhotoContext?.get()?.let { frgAddPhotoView?.get()?.let { it1 ->
-            CommonUtil.hideKeyboard(it,
-                it1
-            )
-        } }
+    fun savePhotoButton() {
+        frgAddPhotoContext?.get()?.let {
+            frgAddPhotoView?.get()?.let { it1 ->
+                CommonUtil.hideKeyboard(
+                    it,
+                    it1
+                )
+            }
+        }
 
-        //Todo insert into local bd
+
+        val mByteArray = ByteArrayOutputStream()
+        selectedImagePreview?.get()?.compress(Bitmap.CompressFormat.JPEG, 100, mByteArray)
+        Log.d("saveButtonState", listSize.toString())
+
+        val mPhoto = Photo(
+            albumId = 1,
+            id = listSize+1,
+            title = fragmentAddPhotoBinding?.addTittle?.text.toString(),
+            url = null,
+            thumbnailUrl = null,
+            imageBmp = mByteArray.toByteArray()
+        )
+
+        LocalDbRepository().insertPhoto(frgAddPhotoContext?.get(), mPhoto)
+
+        CommonUtil.galleryViewModel = this
+
         addPhotoBackArrow()
+    }
 
+    fun deletePhotoButton(mPhoto:Photo, position:Int) {
 
+        LocalDbRepository().deletePhoto(frgAddPhotoContext?.get(), mPhoto.id)
+
+        CommonUtil.galleryViewModel = this
+
+        //Refresh recyclerView
+        actualPhotoList?.removeAt(position)
+        listSize--
+        recyclerView?.get()?.adapter?.notifyItemRemoved(position)
+        recyclerView?.get()?.adapter?.notifyDataSetChanged()
+    }
+
+    private fun saveInLocalDB() {
+
+        CoroutineScope(IO).launch {
+            val mSize = actualPhotoList?.size ?: 0
+            for (i in 0 until mSize) {
+                LocalDbRepository().insertPhoto(frgBaseContext?.get(), actualPhotoList?.get(i))
+                if (i == mSize - 1) Log.d("__localBD", "photos saved")
+            }
+
+        }
     }
 }
