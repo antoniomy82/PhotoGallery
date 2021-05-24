@@ -3,14 +3,17 @@ package com.antoniomy82.photogallery.ui
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.graphics.Color
-import android.util.Log
+import android.os.Build
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import androidx.annotation.RequiresApi
+import androidx.appcompat.app.AppCompatActivity
 import androidx.databinding.DataBindingUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.antoniomy82.photogallery.R
 import com.antoniomy82.photogallery.databinding.AdapterPhotosListBinding
 import com.antoniomy82.photogallery.model.Photo
+import com.antoniomy82.photogallery.utils.CommonUtil
 import com.antoniomy82.photogallery.viewmodel.GalleryViewModel
 import com.squareup.picasso.Picasso
 
@@ -35,6 +38,7 @@ class PhotosListAdapter(
 
 
     //Binding each element with object element
+    @RequiresApi(Build.VERSION_CODES.M)
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
 
         holder.adapterPhotosListBinding.galleryVM = galleryVM
@@ -49,10 +53,16 @@ class PhotosListAdapter(
         }
 
         //Set image from take photo
-        if(photosList[position].imageBmp!=null) holder.adapterPhotosListBinding.imagePhoto.setImageBitmap(
-          BitmapFactory.decodeByteArray(photosList[position].imageBmp,0, (photosList[position].imageBmp)?.size?:0) )
+        if (photosList[position].imageBmp != null) holder.adapterPhotosListBinding.imagePhoto.setImageBitmap(
+            BitmapFactory.decodeByteArray(
+                photosList[position].imageBmp,
+                0,
+                (photosList[position].imageBmp)?.size ?: 0
+            )
+        )
 
-        val setPosition=context.getString(R.string.photo_number)+photosList[position].id.toString()
+        val setPosition =
+            context.getString(R.string.photo_number) + photosList[position].id.toString()
         holder.adapterPhotosListBinding.photoNumber.text = setPosition
 
         //Set background color so that different cells are noticeable
@@ -65,7 +75,18 @@ class PhotosListAdapter(
 
 
         holder.adapterPhotosListBinding.deleteIcon.setOnClickListener {
-            galleryVM.deletePhotoButton(photosList[position],position)
+            galleryVM.deletePhotoButton(photosList[position], position)
+        }
+
+        holder.adapterPhotosListBinding.editIcon.setOnClickListener {
+            galleryVM.editingPhoto = photosList[position]
+
+            (galleryVM.frgBaseContext?.get() as AppCompatActivity).supportFragmentManager.let {
+                CommonUtil.replaceFragment(
+                    AddPhotoFragment(),
+                    it
+                )
+            }
         }
 
     }

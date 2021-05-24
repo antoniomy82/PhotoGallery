@@ -11,6 +11,7 @@ import androidx.annotation.RequiresApi
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import com.antoniomy82.photogallery.R
+import com.antoniomy82.photogallery.model.Photo
 import com.antoniomy82.photogallery.viewmodel.GalleryViewModel
 import java.lang.ref.WeakReference
 import java.util.*

@@ -78,10 +78,22 @@
                 android:paddingRight="10dp" />
 
             <Button
+                android:id="@+id/btn_save"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textColor="@color/title_text"
                 android:text="@string/save_btn"
+                android:onClick="@{()->galleryVM.savePhotoButton()}"
+                android:layout_gravity="center_horizontal|center_vertical"
+                />
+
+            <Button
+                android:id="@+id/btn_modify"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/title_text"
+                android:text="@string/save_edit_btn"
+                android:visibility="gone"
                 android:onClick="@{()->galleryVM.savePhotoButton()}"
                 android:layout_gravity="center_horizontal|center_vertical"
                 />

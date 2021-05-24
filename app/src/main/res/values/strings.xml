@@ -9,5 +9,7 @@
     <string name="title_add_photo">Add Photo</string>
     <string name="edit_title">Add title</string>
     <string name="save_btn">Save</string>
+    <string name="title_edit_photo">Edit title</string>
+    <string name="save_edit_btn">Modify</string>
 
 </resources>

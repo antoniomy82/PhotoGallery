@@ -1,10 +1,12 @@
 package com.antoniomy82.photogallery.ui
 
+import android.os.Build
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.annotation.RequiresApi
 import androidx.databinding.DataBindingUtil
 import com.antoniomy82.photogallery.R
 import com.antoniomy82.photogallery.databinding.FragmentAddPhotoBinding
@@ -21,10 +23,10 @@ class AddPhotoFragment : Fragment() {
         fragmentAddPhotoBinding =
             DataBindingUtil.inflate(inflater, R.layout.fragment_add_photo, container, false)
 
-
         return fragmentAddPhotoBinding?.root
     }
 
+    @RequiresApi(Build.VERSION_CODES.M)
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -37,6 +39,9 @@ class AddPhotoFragment : Fragment() {
                 )
             }
         } }
+
+        fragmentAddPhotoBinding?.galleryVM?.editPhoto()
+
     }
 
 }

@@ -4,13 +4,12 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
-import android.os.Build
+import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Log
 import android.view.View
 import androidx.activity.result.ActivityResultLauncher
-import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
 import androidx.lifecycle.MutableLiveData
@@ -28,6 +27,7 @@ import com.antoniomy82.photogallery.ui.BaseFragment
 import com.antoniomy82.photogallery.ui.PhotosListAdapter
 import com.antoniomy82.photogallery.utils.CommonUtil
 import com.antoniomy82.photogallery.utils.ResizePicture
+import com.squareup.picasso.Picasso
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.launch
@@ -42,8 +42,8 @@ class GalleryViewModel : ViewModel() {
     private var frgBaseView: WeakReference<View>? = null
     private var mainBundle: Bundle? = null
     private var fragmentBaseBinding: FragmentBaseBinding? = null
-    private var frgBaseContext: WeakReference<Context>? = null
     private var startForResult: ActivityResultLauncher<Intent>? = null
+    var frgBaseContext: WeakReference<Context>? = null
 
 
     //Add Photo Fragment parameters
@@ -52,18 +52,22 @@ class GalleryViewModel : ViewModel() {
     private var fragmentAddPhotoBinding: FragmentAddPhotoBinding? = null
     private var frgAddPhotoContext: WeakReference<Context>? = null
 
-    //Live data parameter
+    //Live data parameters
     val retrievePhotos = MutableLiveData<List<Photo>>()
+    val retrieveLocalPhotos = MutableLiveData<List<Photo>>()
 
 
     //Recycler view variables
     private var recyclerView: WeakReference<RecyclerView>? = null
     private var actualPhotoList: MutableList<Photo>? = null
+    private var retrieveNetwork: List<Photo>? = null
+    private var retrieveLocal: List<Photo>? = null
     private var listSize = 0
 
     //Local variables
     private var mMenu: PopupMenu? = null
-    var selectedImagePreview: WeakReference<Bitmap>? = null
+    private var selectedImagePreview: WeakReference<Bitmap>? = null
+    var editingPhoto: Photo? = null
 
     //Set Base fragment parameters in this VM
     fun setBaseFragmentBinding(
@@ -94,14 +98,21 @@ class GalleryViewModel : ViewModel() {
         this.frgAddPhotoView = WeakReference(frgView)
         this.fragmentAddPhotoBinding = fragmentAddPhotoBinding
 
-        fragmentAddPhotoBinding.selectedPhoto.setImageBitmap(selectedImagePreview?.get())
+        //load image
+        if (selectedImagePreview?.get() != null) fragmentAddPhotoBinding.selectedPhoto.setImageBitmap(
+            selectedImagePreview?.get()
+        )
     }
 
-    @RequiresApi(Build.VERSION_CODES.M)
+
     fun setUI() {
 
         fragmentBaseBinding?.progressBar?.visibility = View.VISIBLE //Load ProgressBar
 
+        LocalDbRepository().getAllPhotos(
+            frgBaseContext?.get(),
+            retrieveLocalPhotos
+        ) //Load local repository
 
         if (frgBaseContext?.get()?.let { CommonUtil.isOnline(it) } == true) {
             //Call network repository
@@ -113,27 +124,49 @@ class GalleryViewModel : ViewModel() {
                     )
                 }
             }
-        } else {
-            Log.d("LocalDB", "retrieveLocal")
-            LocalDbRepository().getAllPhotos(frgBaseContext?.get(), retrievePhotos)
-        }
+        } else LocalDbRepository().getAllPhotos(frgBaseContext?.get(), retrievePhotos)
 
         setPhotoMenu()
 
+    }
 
+
+    fun checkRepositories(
+        retrieveLocalObserver: List<Photo>? = null,
+        retrieveNetworkObserver: List<Photo>? = null
+    ) {
+
+        retrieveLocalObserver.let { this.retrieveLocal = it }
+        retrieveNetworkObserver.let { this.retrieveNetwork = it }
+
+        Log.d(
+            "CheckRepositories",
+            "-->In _Local: " + retrieveLocal?.size + " _Network:" + retrieveNetwork?.size
+        )
+        when {
+            retrieveLocal?.size ?: 0 > retrieveNetwork?.size ?: 0 -> {
+                retrieveLocal?.let {
+                    setPhotosRecyclerViewAdapter(
+                        it
+                    )
+                }
+                Log.d("Case 1", "retrieveLocal")
+            }
+            retrieveLocal?.size ?: 0 < retrieveNetwork?.size ?: 0 -> {
+                retrieveNetwork?.let { setPhotosRecyclerViewAdapter(it) }
+                Log.d("Case 2", "retrieveNetwork")
+            }
+
+        }
     }
 
     //Set Photos List in RecyclerView
-    @RequiresApi(Build.VERSION_CODES.M)
-    fun setPhotosRecyclerViewAdapter(photosList: List<Photo>) {
-
+    private fun setPhotosRecyclerViewAdapter(photosList: List<Photo>) {
 
         actualPhotoList = (photosList.reversed()).toMutableList()
         listSize = actualPhotoList?.size ?: 0
-        Log.d("recyclerView", listSize.toString())
 
-        if (frgBaseContext?.get()?.let { CommonUtil.isOnline(it) } == true) saveInLocalDB()
-
+        saveInLocalDB()
 
         recyclerView =
             WeakReference(frgBaseView?.get()?.findViewById(R.id.rvPhotos) as RecyclerView)
@@ -183,6 +216,7 @@ class GalleryViewModel : ViewModel() {
         mMenu?.menuInflater?.inflate(R.menu.photo, mMenu?.menu)
 
         mMenu?.setOnMenuItemClickListener { menuItem ->
+            editingPhoto = null
 
             when (menuItem.itemId) {
                 R.id.photo_gallery -> {
@@ -236,11 +270,13 @@ class GalleryViewModel : ViewModel() {
             200 -> {
                 val selectedImageUri = data?.data
 
-                val mBitmap = selectedImageUri?.let { frgBaseActivity?.get()?.contentResolver?.let { it1 -> ResizePicture(
+                val mBitmap = selectedImageUri?.let {
+                    frgBaseActivity?.get()?.contentResolver?.let { it1 ->
+                        ResizePicture(
                             it,
                             it1
                         ).bitmap
-                }
+                    }
                 }
                 CommonUtil.galleryViewModel?.selectedImagePreview = WeakReference(mBitmap)
 
@@ -267,9 +303,13 @@ class GalleryViewModel : ViewModel() {
         selectedImagePreview?.get()?.compress(Bitmap.CompressFormat.JPEG, 100, mByteArray)
         Log.d("saveButtonState", listSize.toString())
 
+        var mId = listSize + 1
+
+        if (editingPhoto != null) editingPhoto?.id?.let { mId = it }
+
         val mPhoto = Photo(
             albumId = 1,
-            id = listSize+1,
+            id = mId,
             title = fragmentAddPhotoBinding?.addTittle?.text.toString(),
             url = null,
             thumbnailUrl = null,
@@ -283,7 +323,7 @@ class GalleryViewModel : ViewModel() {
         addPhotoBackArrow()
     }
 
-    fun deletePhotoButton(mPhoto:Photo, position:Int) {
+    fun deletePhotoButton(mPhoto: Photo, position: Int) {
 
         LocalDbRepository().deletePhoto(frgAddPhotoContext?.get(), mPhoto.id)
 
@@ -294,6 +334,38 @@ class GalleryViewModel : ViewModel() {
         listSize--
         recyclerView?.get()?.adapter?.notifyItemRemoved(position)
         recyclerView?.get()?.adapter?.notifyDataSetChanged()
+        saveInLocalDB()
+    }
+
+    fun editPhoto() {
+
+        if (editingPhoto != null) {
+
+            fragmentAddPhotoBinding?.btnModify?.visibility = View.VISIBLE
+            fragmentAddPhotoBinding?.btnSave?.visibility = View.GONE
+            fragmentAddPhotoBinding?.headerAddPhotoTitle?.setText(R.string.title_edit_photo)
+            fragmentAddPhotoBinding?.addTittle?.setText(editingPhoto?.title)
+
+            if (editingPhoto?.thumbnailUrl?.isNotEmpty() == true) {
+                Picasso.get().load(editingPhoto?.thumbnailUrl)
+                    .placeholder(R.mipmap.ic_no_image)
+                    .resize(150, 150)
+                    .into(fragmentAddPhotoBinding?.selectedPhoto)
+            }
+
+
+            //Set image from byteArray
+            if (editingPhoto?.imageBmp != null) {
+                selectedImagePreview = WeakReference(
+                    BitmapFactory.decodeByteArray(
+                        editingPhoto?.imageBmp,
+                        0,
+                        (editingPhoto?.imageBmp)?.size ?: 0
+                    )
+                )
+                fragmentAddPhotoBinding?.selectedPhoto?.setImageBitmap(selectedImagePreview?.get())
+            }
+        }
     }
 
     private fun saveInLocalDB() {

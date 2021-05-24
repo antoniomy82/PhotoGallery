@@ -10,4 +10,6 @@
     <string name="title_add_photo">Agregar Foto</string>
     <string name="edit_title">Agrege título</string>
     <string name="save_btn">Guardar</string>
+    <string name="title_edit_photo">Editar título</string>
+    <string name="save_edit_btn">Modificar</string>
 </resources>
